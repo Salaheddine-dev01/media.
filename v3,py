@@ -1,0 +1,175 @@
+# Import necessary modules
+import abc  # Abstract Base Class module for creating abstract classes
+import csv  # Module for reading and writing CSV files
+import json  # Module for working with JSON data
+from collections import namedtuple, OrderedDict, defaultdict  # Advanced Python collections
+from datetime import datetime  # Module for handling dates and times
+
+# Partie 1 : Modélisation des médias
+
+# Define an abstract base class for Media
+class Media(abc.ABC):
+    compteur_media = 0  # Static counter to track the number of media objects created
+
+    def __init__(self, id, titre, annee):
+        self.__id = id  # Private attribute for unique ID
+        self.__titre = titre  # Private attribute for title
+        self.__annee = annee  # Private attribute for publication year
+        Media.compteur_media += 1  # Increment the counter for each new media object
+
+    @property
+    def id(self):
+        return self.__id  # Getter for ID
+
+    @property
+    def titre(self):
+        return self.__titre  # Getter for title
+
+    @property
+    def annee(self):
+        return self.__annee  # Getter for publication year
+
+    @abc.abstractmethod
+    def afficher_details(self):
+        pass  # Abstract method to display media details (must be implemented by subclasses)
+
+    @staticmethod
+    def nombre_de_medias():
+        return Media.compteur_media  # Static method to return the total number of media objects
+
+    def __eq__(self, other):
+        return self.__id == other.id  # Overload equality operator to compare media objects by ID
+
+    def __repr__(self):
+        return f"Media(ID={self.__id}, Titre={self.__titre}, Année={self.__annee})"  # String representation of the object
+
+# Define a class for books, inheriting from Media
+class Livre(Media):
+    def __init__(self, id, titre, annee, auteur, isbn):
+        super().__init__(id, titre, annee)  # Call the parent class constructor
+        self.auteur = auteur  # Author of the book
+        self.isbn = isbn  # ISBN of the book
+
+    def afficher_details(self):
+        return f"Livre: {self.titre}, {self.annee}, {self.auteur}, ISBN: {self.isbn}"  # Display book details
+
+    def __repr__(self):
+        return f"Livre(ID={self.id}, Titre={self.titre}, Année={self.annee}, Auteur={self.auteur}, ISBN={self.isbn})"  # String representation of the book
+
+# Define a class for magazines, inheriting from Media
+class Magazine(Media):
+    def __init__(self, id, titre, annee, editeur, periodicite):
+        super().__init__(id, titre, annee)  # Call the parent class constructor
+        self.editeur = editeur  # Publisher of the magazine
+        self.periodicite = periodicite  # Frequency of publication
+
+    def afficher_details(self):
+        return f"Magazine: {self.titre}, {self.annee}, {self.editeur}, Périodicité: {self.periodicite}"  # Display magazine details
+
+    def __repr__(self):
+        return f"Magazine(ID={self.id}, Titre={self.titre}, Année={self.annee}, Editeur={self.editeur}, Périodicité={self.periodicite})"  # String representation of the magazine
+
+# Define a class for DVDs, inheriting from Media
+class DVD(Media):
+    def __init__(self, id, titre, annee, realisateur, duree):
+        super().__init__(id, titre, annee)  # Call the parent class constructor
+        self.realisateur = realisateur  # Director of the DVD
+        self.duree = duree  # Duration of the DVD in minutes
+
+    def afficher_details(self):
+        return f"DVD: {self.titre}, {self.annee}, {self.realisateur}, Durée: {self.duree} minutes"  # Display DVD details
+
+    def __repr__(self):
+        return f"DVD(ID={self.id}, Titre={self.titre}, Année={self.annee}, Réalisateur={self.realisateur}, Durée={self.duree})"  # String representation of the DVD
+
+# Define a class for downloadable content
+class Telechargeable:
+    def __init__(self, taille_fichier, format_fichier):
+        self.taille_fichier = taille_fichier  # File size in MB
+        self.format_fichier = format_fichier  # File format (e.g., PDF, EPUB)
+
+# Define a class for e-books, inheriting from both Livre and Telechargeable
+class LivreNumerique(Livre, Telechargeable):
+    def __init__(self, id, titre, annee, auteur, isbn, taille_fichier, format_fichier):
+        Livre.__init__(self, id, titre, annee, auteur, isbn)  # Call the Livre constructor
+        Telechargeable.__init__(self, taille_fichier, format_fichier)  # Call the Telechargeable constructor
+
+    def afficher_details(self):
+        return f"Livre Numérique: {self.titre}, {self.annee}, {self.auteur}, ISBN: {self.isbn}, Taille: {self.taille_fichier}MB, Format: {self.format_fichier}"  # Display e-book details
+
+    def __repr__(self):
+        return f"LivreNumérique(ID={self.id}, Titre={self.titre}, Année={self.annee}, Auteur={self.auteur}, ISBN={self.isbn}, Taille={self.taille_fichier}MB, Format={self.format_fichier})"  # String representation of the e-book
+
+# Partie 2 : Surcharge d'opérateurs
+
+# Define a class to manage a collection of media objects
+class CollectionMedia:
+    def __init__(self):
+        self.medias = []  # List to store media objects
+
+    def __add__(self, other):
+        nouvelle_collection = CollectionMedia()  # Create a new collection
+        nouvelle_collection.medias = self.medias + other.medias  # Merge two collections
+        return nouvelle_collection
+
+    def __sub__(self, id):
+        nouvelle_collection = CollectionMedia()  # Create a new collection
+        nouvelle_collection.medias = [media for media in self.medias if media.id != id]  # Remove media by ID
+        return nouvelle_collection
+
+    def __repr__(self):
+        return "\n".join([repr(media) for media in self.medias])  # String representation of the collection
+
+# Partie 3 : Gestion de fichiers et collections Python
+
+# Define a namedtuple to represent an operation on a media object
+Operation = namedtuple('Operation', ['media_id', 'utilisateur', 'date_operation'])
+
+# Function to load media objects from a CSV file
+def charger_medias(fichier_csv):
+    medias = []  # List to store loaded media objects
+    with open(fichier_csv, mode='r', newline='', encoding='utf-8') as file:
+        reader = csv.DictReader(file)  # Read the CSV file as a dictionary
+        for row in reader:
+            if row['type'] == 'Livre':
+                medias.append(Livre(int(row['id']), row['titre'], int(row['annee']), row['auteur'], row['isbn']))  # Create a Livre object
+            elif row['type'] == 'Magazine':
+                medias.append(Magazine(int(row['id']), row['titre'], int(row['annee']), row['editeur'], row['periodicite']))  # Create a Magazine object
+            elif row['type'] == 'DVD':
+                medias.append(DVD(int(row['id']), row['titre'], int(row['annee']), row['realisateur'], int(row['duree'])))  # Create a DVD object
+            elif row['type'] == 'LivreNumerique':
+                medias.append(LivreNumerique(int(row['id']), row['titre'], int(row['annee']), row['auteur'], row['isbn'], float(row['taille_fichier']), row['format_fichier']))  # Create a LivreNumerique object
+    return medias
+
+# Function to export media objects to a JSON file
+def exporter_medias(medias, fichier_json):
+    with open(fichier_json, 'w', encoding='utf-8') as file:
+        json.dump([media.__dict__ for media in medias], file, ensure_ascii=False, indent=4)  # Write media objects to JSON
+
+# Exemple d'utilisation
+if __name__ == "__main__":
+    # Création de médias
+    livre1 = Livre(1, "Python pour les Nuls", 2020, "John Doe", "123-456-789")  # Create a Livre object
+    magazine1 = Magazine(2, "Science Today", 2021, "Science Corp", "Mensuel")  # Create a Magazine object
+    dvd1 = DVD(3, "Inception", 2010, "Christopher Nolan", 148)  # Create a DVD object
+    livre_num1 = LivreNumerique(4, "Apprendre Python", 2019, "Jane Doe", "987-654-321", 2.5, "PDF")  # Create a LivreNumerique object
+
+    # Collection de médias
+    collection1 = CollectionMedia()  # Create a new collection
+    collection1.medias = [livre1, magazine1]  # Add media objects to the collection
+    collection2 = CollectionMedia()  # Create another collection
+    collection2.medias = [dvd1, livre_num1]  # Add media objects to the collection
+
+    # Fusion de collections
+    collection_fusionnee = collection1 + collection2  # Merge two collections
+    print("Collection fusionnée:")
+    print(collection_fusionnee)  # Display the merged collection
+
+    # Soustraction d'un média
+    collection_reduite = collection_fusionnee - 3  # Remove a media object by ID
+    print("\nCollection après suppression du DVD:")
+    print(collection_reduite)  # Display the updated collection
+
+    # Chargement et exportation de médias
+    medias = charger_medias('medias.csv')  # Load media objects from a CSV file
+    exporter_medias(medias, 'medias.json')  # Export media objects to a JSON file
